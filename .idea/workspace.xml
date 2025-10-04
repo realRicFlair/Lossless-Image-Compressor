@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a2ef002-8246-4c75-90cb-79c91f298e51" name="Changes" comment="Init">
+    <list default="true" id="9a2ef002-8246-4c75-90cb-79c91f298e51" name="Changes" comment="Added brightness slider and cleaned code up">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bmpfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/bmpfile.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/imageView.py" beforeDir="false" afterPath="$PROJECT_DIR$/imageView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
@@ -98,11 +97,28 @@
       <option name="project" value="LOCAL" />
       <updated>1759557207838</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Added brightness slider and cleaned code up">
+      <option name="closed" value="true" />
+      <created>1759560006424</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1759560006424</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Added brightness slider and cleaned code up">
+      <option name="closed" value="true" />
+      <created>1759560012658</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1759560012658</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Init" />
-    <option name="LAST_COMMIT_MESSAGE" value="Init" />
+    <MESSAGE value="Added brightness slider and cleaned code up" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added brightness slider and cleaned code up" />
   </component>
 </project>

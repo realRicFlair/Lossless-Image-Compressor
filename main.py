@@ -27,7 +27,7 @@ class FileDrop(QWidget):
         self.label = QLabel("📁 Drop BMP file here")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont("Segoe UI", 14, QFont.Bold))
-        self.setMinimumSize(500, 350)
+        self.setMinimumSize(400, 280)
         layout.addWidget(self.label)
 
         # Default style

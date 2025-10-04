@@ -77,33 +77,40 @@ class ImageView(QLabel):
                         b if self.mask_b else 0
                     )
 
-        # 2) idk if were supposed to do gamma like from lectures
+        # 2) Accidently implemented gamma instead of YUV based brightness. Changed it last moent
         if abs(self.gamma - 1.0) > 1e-6:
-            inv_g = 1.0 / self.gamma
+            # Normalize gamma value (last moment change)
+            brightness_scale = self.gamma / 1.5
+
             h, w = len(src), len(src[0])
             for y in range(h):
                 row = src[y]
                 for x in range(w):
                     r, g, b = row[x]
                     if self.bmp.numColors > 2 or self.bmp.bpp != 1:
-                        r = int(255.0 * pow(r / 255.0, inv_g) + 0.5)
-                        g = int(255.0 * pow(g / 255.0, inv_g) + 0.5)
-                        b = int(255.0 * pow(b / 255.0, inv_g) + 0.5)
-                    else:
-                        # Dont do gamma for images with only 2 colors
-                        # instead just add a higher value straight up
-                        factor = (((self.gamma/3.0) * 2.0) - 1.0)
-                        r = int(r + factor*127)
-                        g = int(g + factor*127)
-                        b = int(b + factor*127)
+                        Y = 0.299 * r + 0.587 * g + 0.114 * b
+                        U = -0.14713 * r - 0.28886 * g + 0.436 * b
+                        V = 0.615 * r - 0.51499 * g - 0.10001 * b
 
-                    # clamp
-                    if r < 0: r = 0
-                    elif r > 255: r = 255
-                    if g < 0: g = 0
-                    elif g > 255: g = 255
-                    if b < 0: b = 0
-                    elif b > 255: b = 255
+                        # Scale Y by normalized brightness
+                        Y *= brightness_scale
+
+                        # Convert back to RGB
+                        r = int(Y + 1.13983 * V)
+                        g = int(Y - 0.39465 * U - 0.58060 * V)
+                        b = int(Y + 2.03211 * U)
+
+                    else:
+                        # For binary (1bpp) images, approximate brightness bump
+                        factor = (brightness_scale - 1.0) * 127
+                        r = int(r + factor)
+                        g = int(g + factor)
+                        b = int(b + factor)
+
+                    # Clamp
+                    r = max(0, min(255, r))
+                    g = max(0, min(255, g))
+                    b = max(0, min(255, b))
                     row[x] = (r, g, b)
 
         # 3) Scale. If factor around 1, keep as-is
