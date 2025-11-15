@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a2ef002-8246-4c75-90cb-79c91f298e51" name="Changes" comment="Added brightness slider and cleaned code up">
+    <list default="true" id="9a2ef002-8246-4c75-90cb-79c91f298e51" name="Changes" comment="Changed to YUV brightness">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/imageView.py" beforeDir="false" afterPath="$PROJECT_DIR$/imageView.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -113,12 +112,21 @@
       <option name="project" value="LOCAL" />
       <updated>1759560012658</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Changed to YUV brightness">
+      <option name="closed" value="true" />
+      <created>1759561311122</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1759561311122</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Init" />
     <MESSAGE value="Added brightness slider and cleaned code up" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added brightness slider and cleaned code up" />
+    <MESSAGE value="Changed to YUV brightness" />
+    <option name="LAST_COMMIT_MESSAGE" value="Changed to YUV brightness" />
   </component>
 </project>

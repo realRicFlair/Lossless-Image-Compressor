@@ -9,17 +9,16 @@ import sys
 from bmpfile import BMPFile
 from debouncedSlider import DebouncedSlider
 from imageView import ImageView
+from compress_ui import CompressionWidget
 
 app = QApplication(sys.argv)
 
 
 class FileDrop(QWidget):
-    dropped = pyqtSignal(str)
-
+    dropped = pyqtSignal(object)
     def __init__(self):
         super().__init__()
         self.setAcceptDrops(True)
-
 
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -49,9 +48,11 @@ class FileDrop(QWidget):
     def checkMimeData(self, event):
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
-            if len(urls) == 1 and urls[0].toLocalFile().endswith(".bmp"):
-                return True
+            if len(urls) == 1:
+                f = urls[0].toLocalFile().lower()
+                return f.endswith(".bmp") or f.endswith(".compress")
         return False
+
 
     def dragEnterEvent(self, event):
         if self.checkMimeData(event):
@@ -74,7 +75,10 @@ class FileDrop(QWidget):
         if self.checkMimeData(event):
             event.accept()
             file_path = event.mimeData().urls()[0].toLocalFile()
-            self.dropped.emit(file_path)
+            if file_path.lower().endswith(".bmp"):
+                self.dropped.emit(("bmp", file_path))
+            else:
+                self.dropped.emit(("compress", file_path))
         else:
             event.ignore()
 
@@ -134,7 +138,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(fdrop)
 
         #test
-        button = QPushButton("Click me to close")
+        button = QPushButton("Close")
         button.clicked.connect(app.quit)
         button.setFixedSize(200, 50)
         layout.addWidget(button)
@@ -195,6 +199,11 @@ class MainWindow(QMainWindow):
         self.blue_btn.clicked.connect(self.update_rgb)
         layout.addLayout(rgb_layout)
 
+
+        # Compression UI
+        self.compression_widget = CompressionWidget()
+        layout.addWidget(self.compression_widget)
+
         self.mainwidget.setLayout(layout)
         self.setCentralWidget(self.mainwidget)
 
@@ -211,10 +220,18 @@ class MainWindow(QMainWindow):
         self.dimensions_label.setText(f"Dimensions: {width}×{height}")
         self.bpp_label.setText("Bits per pixel: " + str(bpp))
 
-    def onBMPOpen(self, url):
-        bmp = BMPFile(url)
-        self.showFileMetadata(bmp.filename, bmp.fileSize, bmp.width, bmp.height, bmp.bpp)
-        self.ImageViewer.render_bmp(bmp)
+    def onBMPOpen(self, data):
+        ftype, path = data
+
+        if ftype == "bmp":
+            bmp = BMPFile(path)
+            self.showFileMetadata(bmp.filename, bmp.fileSize, bmp.width, bmp.height, bmp.bpp)
+            self.ImageViewer.render_bmp(bmp)
+            self.compression_widget.set_bmp(bmp)
+
+        elif ftype == "compress":
+            self.openCompressedFile(path)
+
 
     def apply_scale(self, slider_val):
         factor = slider_val / 200.0
@@ -232,6 +249,47 @@ class MainWindow(QMainWindow):
             green=self.green_btn.isChecked(),
             blue=self.blue_btn.isChecked()
         )
+
+    def openCompressedFile(self, path):
+        with open(path, "rb") as f:
+            raw = f.read()
+
+        # First 8 bytes: width, height
+        width = int.from_bytes(raw[0:4], "little")
+        height = int.from_bytes(raw[4:8], "little")
+
+        # Remaining data is bits
+        data = raw[8:]
+        bitstream = []
+        for byte in data:
+            for i in range(8):
+                bitstream.append((byte >> (7 - i)) & 1)
+
+        # Decompress
+        from compress import decompress_image
+        grid = decompress_image(bitstream, width, height)
+        print(grid)
+
+        # Make a mock BMPFile to show the decoded pixels
+        bmp = BMPFile(None)
+        bmp.filename = path.split("/")[-1]
+        bmp.fileSize = len(raw)
+        bmp.width = width
+        bmp.height = height
+        bmp.bpp = 24
+        bmp.pixelmap = grid
+
+        self.ImageViewer.render_bmp(bmp)
+
+        # No metadata (since no true BMP header), but show basic info
+        self.filename_label.setText("Filename: " + bmp.filename)
+        self.size_label.setText(f"Size: {len(raw)} bytes")
+        self.dimensions_label.setText(f"Dimensions: {width}×{height}")
+        self.bpp_label.setText("Bits per pixel: 24 (decoded)")
+
+        # Also feed into compression UI so user can recompress
+        self.compression_widget.set_bmp(bmp)
+
 
 if __name__ == '__main__':
     window = MainWindow()

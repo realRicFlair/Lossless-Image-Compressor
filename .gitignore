@@ -1,6 +1,7 @@
 # Python virtual environments
 venv/
 .venv/
+.idea/
 ENV/
 env/
 env.bak/
@@ -8,6 +9,10 @@ venv.bak/
 .Python
 pip-wheel-metadata/
 pip-delete-this-directory.txt
+include/
+lib64/
+__pycache__/
+lib/
 
 # byte-compiled / caches (useful to ignore with venvs)
 __pycache__/
