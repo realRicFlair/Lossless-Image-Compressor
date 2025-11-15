@@ -23,7 +23,7 @@ class FileDrop(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.label = QLabel("📁 Drop BMP file here")
+        self.label = QLabel("📁 Drop BMP or .compress file here!")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.setMinimumSize(400, 280)
@@ -136,12 +136,6 @@ class MainWindow(QMainWindow):
         fdrop = FileDrop()
         fdrop.dropped.connect(self.onBMPOpen)
         layout.addWidget(fdrop)
-
-        #test
-        button = QPushButton("Close")
-        button.clicked.connect(app.quit)
-        button.setFixedSize(200, 50)
-        layout.addWidget(button)
 
         # scale slider
         self.scalelabel = QLabel("Scale: 100%")

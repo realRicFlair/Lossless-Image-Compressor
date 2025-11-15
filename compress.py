@@ -1,41 +1,29 @@
-# compress.py
 from bmpfile import BMPFile
 
-# ===============================================================
-#   Clean Arithmetic Coder (Witten-Neal-Cleary style)
-#   - 32-bit range
-#   - Correct E1/E2/E3 scaling
-#   - Symmetric encoder/decoder
-#   - Adaptive model for symbols 0..510 (residuals)
-# ===============================================================
-
 CODE_BITS = 32
-FULL_RANGE = 1 << CODE_BITS          # 2^32
-HALF       = FULL_RANGE >> 1         # 0.5
-FIRST_QTR  = HALF >> 1               # 0.25
-THIRD_QTR  = FIRST_QTR * 3           # 0.75
+FULL_RANGE = 1 << CODE_BITS #2^32
+HALF       = FULL_RANGE >> 1 # 0.5
+FIRST_QTR  = HALF >> 1 # 0.25
+THIRD_QTR  = FIRST_QTR * 3 # 0.75
 
 
 # ---------------------------------------------------------------
-# Frequency model for symbols 0..(symbol_count-1)
+# Inspired by this: https://www.sfu.ca/~jiel/courses/861/ref/LOCOI.pdf
 # ---------------------------------------------------------------
 
 class FrequencyTable:
-    """
-    Adaptive frequency table.
-    Maintains:
-      - freq[s] >= 1 for each symbol
-      - cumulative table cum[i] = sum_{s < i} freq[s]
-    """
+    # Maintains:
+    # freq[s] >= 1 for each symbol
+    # cumulative table cum[i] = sum_{s < i} freq[s]
 
     def __init__(self, symbol_count):
         self.symbol_count = symbol_count
-        self.freq = [1] * symbol_count       # start with uniform counts
-        self.cum = None                      # cumulative table
-        self.total = symbol_count            # sum(freq)
+        self.freq = [1] * symbol_count # start with uniform counts
+        self.cum = None # cumulative table
+        self.total = symbol_count # sum(freq)
     
     def _rebuild_cumulative(self):
-        """Rebuilds cumulative frequencies from freq[]."""
+        #Rebuilds cumulative frequencies from freq[]
         self.cum = [0] * (self.symbol_count + 1)
         s = 0
         for i in range(self.symbol_count):
@@ -48,27 +36,23 @@ class FrequencyTable:
         if self.cum is None:
             self._rebuild_cumulative()
 
-    # --- API used by encoder/decoder ---
 
     def get_total(self):
         self._ensure_cum()
         return self.total
 
     def get_low_high(self, symbol):
-        """
-        Returns (low, high) cumulative counts for the given symbol.
-        low = sum_{s < symbol} freq[s]
-        high = sum_{s <= symbol} freq[s]
-        """
+        # Returns (low, high) cumulative counts for the given symbol
+        # low = sum_{s < symbol} freq[s]
+        # high = sum_{s <= symbol} freq[s]
+
         self._ensure_cum()
         return self.cum[symbol], self.cum[symbol + 1]
 
     def get_symbol_for_value(self, value):
-        """
-        Given value in [0, total-1], returns the symbol such that:
-          cum[symbol] <= value < cum[symbol+1]
-        Uses binary search over cum[].
-        """
+        # Given value in [0, total-1], returns the symbol such that:
+        # cum[symbol] <= value < cum[symbol+1]
+
         self._ensure_cum()
         lo, hi = 0, self.symbol_count
         while lo + 1 < hi:
@@ -80,15 +64,14 @@ class FrequencyTable:
         return lo
 
     def increment(self, symbol):
-        """
-        Increment frequency of the given symbol.
-        If counts get big, rescale to avoid overflow.
-        """
+        # Increment frequency of the given symbol
+        # If counts get big, rescale to avoid overflow
+
         self.freq[symbol] += 1
-        # When a single symbol grows large, total will too.
-        # We rescale occasionally to keep totals reasonable.
+        # When a single symbol grows large, total will too
+        # Rescale to keep totals reasonable
         if self.freq[symbol] > 1_000_000:
-            # Halve all frequencies (but keep >=1)
+            # Halve all frequencies but keep >=1
             for i in range(self.symbol_count):
                 f = self.freq[i]
                 f = (f + 1) // 2
@@ -99,19 +82,17 @@ class FrequencyTable:
         self.cum = None
 
 
-# ---------------------------------------------------------------
-# Arithmetic Encoder
-# ---------------------------------------------------------------
+
 
 class ArithmeticEncoder:
     def __init__(self):
         self.low = 0
         self.high = FULL_RANGE - 1
-        self.pending = 0     # E3 underflow counter
+        self.pending = 0 # E3 underflow counter
         self.output_bits = []
 
     def _output_bit(self, bit):
-        """Output one bit, then flush any pending opposite bits."""
+        # Output one bit, then flush any pending opposite bits
         self.output_bits.append(bit)
         while self.pending > 0:
             self.output_bits.append(1 - bit)
@@ -121,7 +102,6 @@ class ArithmeticEncoder:
         total = model.get_total()
         sym_low, sym_high = model.get_low_high(symbol)
 
-        # Update [low, high] for this symbol
         range_ = self.high - self.low + 1
         self.high = self.low + (range_ * sym_high // total) - 1
         self.low  = self.low + (range_ * sym_low  // total)
@@ -160,10 +140,6 @@ class ArithmeticEncoder:
         return self.output_bits
 
 
-# ---------------------------------------------------------------
-# Arithmetic Decoder
-# ---------------------------------------------------------------
-
 class ArithmeticDecoder:
     def __init__(self, bitstream):
         self.bitstream = bitstream
@@ -188,17 +164,15 @@ class ArithmeticDecoder:
         total = model.get_total()
         range_ = self.high - self.low + 1
 
-        # Map code into [0, total-1]
         value = ((self.code - self.low + 1) * total - 1) // range_
 
         symbol = model.get_symbol_for_value(value)
         sym_low, sym_high = model.get_low_high(symbol)
 
-        # Update interval
         self.high = self.low + (range_ * sym_high // total) - 1
         self.low  = self.low + (range_ * sym_low  // total)
 
-        # Renormalize with E1/E2/E3 scaling
+        # E1/E2/E3 scaling
         while True:
             if self.high < HALF:
                 # E1
@@ -224,10 +198,9 @@ class ArithmeticDecoder:
 
 
 def loco_predictor(x, y, grid):
-    """
-    LOCO-I median edge detector predictor.
-    For borders: return 0 or nearest neighbor.
-    """
+    # LOCO-I predictor
+    # For borders, return 0 or nearest neighbor
+
     if x == 0 and y == 0:
         return (0, 0, 0)
     if x == 0:
@@ -249,21 +222,20 @@ def loco_predictor(x, y, grid):
 
 
 # ===============================================================
-#   High-Level API 
 
-MAX_RESIDUAL = 510        # residual in [0..510] after shifting by +255
-SYMBOL_COUNT = MAX_RESIDUAL + 1  # 511 symbols
+MAX_RESIDUAL = 510
+SYMBOL_COUNT = MAX_RESIDUAL + 1
 
 
 def compress_image(pixelmap):
-    """Compress a full 2D pixel grid: [[(r,g,b), ...], ...]."""
+    # Compress full pixel grid
     H = len(pixelmap)
     W = len(pixelmap[0])
 
     encoder = ArithmeticEncoder()
     model = FrequencyTable(SYMBOL_COUNT)
 
-    # Work on copy to avoid modifying original
+    # Work on copy instead of original
     pred_grid = [[(0, 0, 0)] * W for _ in range(H)]
 
     for y in range(H):
@@ -271,12 +243,11 @@ def compress_image(pixelmap):
             pr, pg, pb = loco_predictor(x, y, pred_grid)
             r, g, b = pixelmap[y][x]
 
-            # residual in [-255..255] -> [0..510]
             dr = r - pr + 255
             dg = g - pg + 255
             db = b - pb + 255
 
-            # safety clamp just in case (shouldn't be needed if predictor is sane)
+            # safety clamp 
             dr = max(0, min(MAX_RESIDUAL, dr))
             dg = max(0, min(MAX_RESIDUAL, dg))
             db = max(0, min(MAX_RESIDUAL, db))
@@ -291,7 +262,7 @@ def compress_image(pixelmap):
 
 
 def decompress_image(bitstream, width, height):
-    """Decompress into a pixel grid [[(r,g,b), ...], ...]."""
+    # Decompress into a pixel grid 
     decoder = ArithmeticDecoder(bitstream)
     model = FrequencyTable(SYMBOL_COUNT)
 
@@ -309,23 +280,11 @@ def decompress_image(bitstream, width, height):
             g = (dg - 255) + pg
             b = (db - 255) + pb
 
-            # r,g,b should match original exactly if everything is correct.
-            # We don't clamp here so mismatch shows up in verify step.
             grid[y][x] = (r, g, b)
 
     return grid
 
 
-# Run compress.py directly for sanity check
-if __name__ == "__main__":
-    import random
-    W, H = 16, 16
-    img = [[(random.randint(0, 255),
-             random.randint(0, 255),
-             random.randint(0, 255)) for _ in range(W)] for _ in range(H)]
-    bits = compress_image(img)
-    dec = decompress_image(bits, W, H)
-    print("Test OK:", img == dec)
 
 
 

@@ -9,26 +9,19 @@ from compress import compress_image, decompress_image
 
 
 class CompressionWidget(QWidget):
-    """
-    Simple UI wrapper for BMP compression/decompression.
-
-    Usage:
-        cw = CompressionWidget()
-        cw.set_bmp(bmp)   # bmp is a BMPFile instance
-    """
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.current_bmp: BMPFile | None = None
-        self.original_grid = None      # 2D list of (r,g,b)
-        self.compressed_bits = None    # list[int]
+        self.original_grid = None
+        self.compressed_bits = None # list[int]
         self.width = 0
         self.height = 0
         self.original_filesize = 0
+        self.compression_start_time = 0
 
         self._build_ui()
 
-    # ---------------- UI ---------------- #
 
     def _build_ui(self):
         layout = QVBoxLayout()
@@ -40,10 +33,9 @@ class CompressionWidget(QWidget):
         title.setStyleSheet("font-weight: bold; font-size: 14px;")
         layout.addWidget(title)
 
-        # Buttons row
         btn_row = QHBoxLayout()
         self.compress_btn = QPushButton("Compress")
-        self.decompress_btn = QPushButton("Decompress & Verify")
+        self.decompress_btn = QPushButton("Decompress and Verify")
 
         self.compress_btn.clicked.connect(self.on_compress_clicked)
         self.decompress_btn.clicked.connect(self.on_decompress_clicked)
@@ -52,17 +44,20 @@ class CompressionWidget(QWidget):
         btn_row.addWidget(self.decompress_btn)
         layout.addLayout(btn_row)
 
-        # Info labels
-        self.status_label = QLabel("Status: idle")
-        self.size_label = QLabel("Compressed size: -")
-        self.ratio_label = QLabel("Compression ratio: -")
+        self.status_label = QLabel("Status: chillin")
+        self.ogsize_label = QLabel("Original size: N/A")
+        self.size_label = QLabel("Compressed size: N/A")
+        self.ratio_label = QLabel("Compression ratio: N/A")
+        self.time_label = QLabel("Compression time(ms): N/A")
 
         for lbl in (self.status_label, self.size_label, self.ratio_label):
             lbl.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         layout.addWidget(self.status_label)
         layout.addWidget(self.size_label)
+        layout.addWidget(self.ogsize_label)
         layout.addWidget(self.ratio_label)
+        layout.addWidget(self.time_label)
 
         self.save_btn = QPushButton("Save Compressed File")
         self.save_btn.clicked.connect(self.on_save_clicked)
@@ -83,19 +78,13 @@ class CompressionWidget(QWidget):
             }
         """)
 
-    # -------------- Public API -------------- #
 
     def set_bmp(self, bmp: BMPFile):
-        """
-        Tell the widget which BMP to work with.
-        Call this from MainWindow.onBMPOpen().
-        """
         self.current_bmp = bmp
         self.width = bmp.width
         self.height = abs(bmp.height)
         self.original_filesize = bmp.fileSize
 
-        # Generate pixel grid if not already present
         if bmp.pixelmap:
             self.original_grid = bmp.pixelmap
         else:
@@ -107,7 +96,6 @@ class CompressionWidget(QWidget):
         self.size_label.setText("Compressed size: -")
         self.ratio_label.setText("Compression ratio: -")
 
-    # -------------- Slots -------------- #
 
     def on_compress_clicked(self):
         if self.current_bmp is None or self.original_grid is None:
@@ -116,6 +104,7 @@ class CompressionWidget(QWidget):
 
         try:
             self._set_status("Compressing...", busy=True)
+            self.compression_start_time = Qt.QTime.currentTime()
             bits = compress_image(self.original_grid)
             self.compressed_bits = bits
 
@@ -130,6 +119,7 @@ class CompressionWidget(QWidget):
 
             self.save_btn.setEnabled(True)
             self._set_status("Compression done.")
+            self.time_label.setText("Compression time(ms): " + str(self.compression_start_time.msecsTo(Qt.QTime.currentTime())))
             
         except Exception as e:
             self._set_status(f"Compression error: {e}", error=True)
@@ -139,28 +129,28 @@ class CompressionWidget(QWidget):
             self._set_status("No BMP loaded.", error=True)
             return
         if self.compressed_bits is None:
-            self._set_status("Nothing to decompress (run Compress first).", error=True)
+            self._set_status("Nothing to decompress (run compress first).", error=True)
             return
 
         try:
             self._set_status("Decompressing...", busy=True)
             decoded = decompress_image(self.compressed_bits, self.width, self.height)
 
-            # Verify lossless reconstruction
+            # Check if reconstruction matches
             ok = self._compare_grids(self.original_grid, decoded)
             if ok:
                 self._set_status("Decompression OK: image matches original.")
                 QMessageBox.information(self, "Decompression", "Decompression successful.\nImage matches original.")
             else:
-                self._set_status("Decompression mismatch: pixels differ!", error=True)
-                QMessageBox.warning(self, "Decompression", "Decompression finished, but image differs from original.")
+                self._set_status("Decompression mismatch: pixels differ!!", error=True)
+                QMessageBox.warning(self, "Decompression", "Decompression finished, but image differs from original?")
         except Exception as e:
             self._set_status(f"Decompression error: {e}", error=True)
 
 
     def on_save_clicked(self):
         if self.compressed_bits is None:
-            QMessageBox.warning(self, "Save", "No compressed data. Please compress first.")
+            QMessageBox.warning(self, "Save", "No compressed data, Compress first.")
             return
 
         # Ask where to save
@@ -177,7 +167,7 @@ class CompressionWidget(QWidget):
             # Convert bitstream -> bytes
             data_bytes = self._bits_to_bytes(self.compressed_bits)
 
-            # Minimal header: width & height (4 bytes each, little-endian)
+            # Header: width & height (4 bytes each, little-endian)
             header = self.width.to_bytes(4, "little") + self.height.to_bytes(4, "little")
 
             with open(path, "wb") as f:
@@ -190,7 +180,7 @@ class CompressionWidget(QWidget):
             self._set_status(f"Save error: {e}", error=True)
             QMessageBox.critical(self, "Error Saving", str(e))
 
-    # -------------- Helpers -------------- #
+    # ================== Helpers ===============
 
     def _set_status(self, text: str, error: bool = False, busy: bool = False):
         if error:
