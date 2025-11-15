@@ -1,0 +1,15 @@
+# Python virtual environments
+venv/
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.Python
+pip-wheel-metadata/
+pip-delete-this-directory.txt
+
+# byte-compiled / caches (useful to ignore with venvs)
+__pycache__/
+*.py[cod]
+*$py.class
