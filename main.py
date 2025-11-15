@@ -23,7 +23,7 @@ class FileDrop(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        self.label = QLabel("📁 Drop BMP or .compress file here!")
+        self.label = QLabel("📁 Drop BMP or .cmpt365 file here!")
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFont(QFont("Segoe UI", 14, QFont.Bold))
         self.setMinimumSize(400, 280)
@@ -50,7 +50,7 @@ class FileDrop(QWidget):
             urls = event.mimeData().urls()
             if len(urls) == 1:
                 f = urls[0].toLocalFile().lower()
-                return f.endswith(".bmp") or f.endswith(".compress")
+                return f.endswith(".bmp") or f.endswith(".cmpt365")
         return False
 
 
@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
     def showFileMetadata(self, filename, size, width, height, bpp):
         self.filename_label.setText("Filename: " + filename)
         self.size_label.setText("Size: " + self._readableFileSizeScale(size))
-        self.dimensions_label.setText(f"Dimensions: {width}×{height}")
+        self.dimensions_label.setText(f"Dimensions: {width}x{height}")
         self.bpp_label.setText("Bits per pixel: " + str(bpp))
 
     def onBMPOpen(self, data):
@@ -263,7 +263,7 @@ class MainWindow(QMainWindow):
         from compress import decompress_image
         grid = decompress_image(bitstream, width, height)
 
-        # Make a mock BMPFile to show the decoded pixels
+        # Mock BMPFile to show decoded pixels (just wanna reuse code)
         bmp = BMPFile(None)
         bmp.filename = path.split("/")[-1]
         bmp.fileSize = len(raw)
@@ -274,13 +274,12 @@ class MainWindow(QMainWindow):
 
         self.ImageViewer.render_bmp(bmp)
 
-        # No metadata (since no true BMP header), but show basic info
+        # No metadata (since no true BMP header), show basic info
         self.filename_label.setText("Filename: " + bmp.filename)
         self.size_label.setText(f"Size: {len(raw)} bytes")
-        self.dimensions_label.setText(f"Dimensions: {width}×{height}")
+        self.dimensions_label.setText(f"Dimensions: {width}x{height}")
         self.bpp_label.setText("Bits per pixel: 24 (decoded)")
 
-        # Also feed into compression UI so user can recompress
         self.compression_widget.set_bmp(bmp)
 
 

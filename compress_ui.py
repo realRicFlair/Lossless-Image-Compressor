@@ -1,9 +1,10 @@
+import os
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QMessageBox, QFileDialog
 )
-
+import time
 from bmpfile import BMPFile
 from compress import compress_image, decompress_image
 
@@ -44,11 +45,11 @@ class CompressionWidget(QWidget):
         btn_row.addWidget(self.decompress_btn)
         layout.addLayout(btn_row)
 
-        self.status_label = QLabel("Status: chillin")
-        self.ogsize_label = QLabel("Original size: N/A")
-        self.size_label = QLabel("Compressed size: N/A")
-        self.ratio_label = QLabel("Compression ratio: N/A")
-        self.time_label = QLabel("Compression time(ms): N/A")
+        self.status_label = QLabel("Status: Ready to Receive Holy Actuation")
+        self.ogsize_label = QLabel("Original Size: N/A")
+        self.size_label = QLabel("Compressed Size: N/A")
+        self.ratio_label = QLabel("Compression Ratio: N/A")
+        self.time_label = QLabel("Compression Time(ms): N/A")
 
         for lbl in (self.status_label, self.size_label, self.ratio_label):
             lbl.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -92,9 +93,9 @@ class CompressionWidget(QWidget):
 
         # Reset compression state
         self.compressed_bits = None
-        self.status_label.setText("Status: ready (no compressed data yet)")
-        self.size_label.setText("Compressed size: -")
-        self.ratio_label.setText("Compression ratio: -")
+        self.status_label.setText("Status: Ready to Receive Holy Actuation")
+        self.size_label.setText("Compressed Size: N/A")
+        self.ratio_label.setText("Compression Ratio: N/A")
 
 
     def on_compress_clicked(self):
@@ -104,25 +105,26 @@ class CompressionWidget(QWidget):
 
         try:
             self._set_status("Compressing...", busy=True)
-            self.compression_start_time = Qt.QTime.currentTime()
+            self.compression_start_time = time.perf_counter()
             bits = compress_image(self.original_grid)
             self.compressed_bits = bits
 
             compressed_bytes = (len(bits) + 7) // 8
-            self.size_label.setText(f"Compressed size: {compressed_bytes} bytes")
+            self.size_label.setText(f"Compressed Size: {compressed_bytes} bytes")
 
             if self.original_filesize > 0:
                 ratio = self.original_filesize / compressed_bytes if compressed_bytes > 0 else 0
-                self.ratio_label.setText(f"Compression ratio: {ratio:.2f}x")
+                self.ratio_label.setText(f"Compression Ratio: {ratio:.2f}x")
+                self.ogsize_label.setText(f"Original Size: {self.original_filesize} bytes")
             else:
-                self.ratio_label.setText("Compression ratio: -")
+                self.ratio_label.setText("Compression Ratio: N\A")
 
             self.save_btn.setEnabled(True)
-            self._set_status("Compression done.")
-            self.time_label.setText("Compression time(ms): " + str(self.compression_start_time.msecsTo(Qt.QTime.currentTime())))
+            self._set_status("Compression Done!")
+            self.time_label.setText("Compression Time(ms): " + str((time.perf_counter() - self.compression_start_time)*1000))
             
         except Exception as e:
-            self._set_status(f"Compression error: {e}", error=True)
+            self._set_status(f"Compression Error: {e}", error=True)
 
     def on_decompress_clicked(self):
         if self.current_bmp is None or self.original_grid is None:
@@ -143,21 +145,22 @@ class CompressionWidget(QWidget):
                 QMessageBox.information(self, "Decompression", "Decompression successful.\nImage matches original.")
             else:
                 self._set_status("Decompression mismatch: pixels differ!!", error=True)
-                QMessageBox.warning(self, "Decompression", "Decompression finished, but image differs from original?")
+                QMessageBox.warning(self, "Decompression", "Decompression finished, but image differs from original :(")
         except Exception as e:
             self._set_status(f"Decompression error: {e}", error=True)
 
 
     def on_save_clicked(self):
         if self.compressed_bits is None:
-            QMessageBox.warning(self, "Save", "No compressed data, Compress first.")
+            QMessageBox.warning(self, "Save", "No compressed data, compress first")
             return
 
+        name, _ = os.path.splitext(self.current_bmp.filename)
         # Ask where to save
         path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Compressed File",
-            "image.compress",
+            (name + ".cmpt365"),
             "Compressed Files (*.bin);;All Files (*)"
         )
         if not path:

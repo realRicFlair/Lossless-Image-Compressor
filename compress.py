@@ -7,9 +7,7 @@ FIRST_QTR  = HALF >> 1 # 0.25
 THIRD_QTR  = FIRST_QTR * 3 # 0.75
 
 
-# ---------------------------------------------------------------
 # Inspired by this: https://www.sfu.ca/~jiel/courses/861/ref/LOCOI.pdf
-# ---------------------------------------------------------------
 
 class FrequencyTable:
     # Maintains:
@@ -88,11 +86,11 @@ class ArithmeticEncoder:
     def __init__(self):
         self.low = 0
         self.high = FULL_RANGE - 1
-        self.pending = 0 # E3 underflow counter
+        self.pending = 0
         self.output_bits = []
 
     def _output_bit(self, bit):
-        # Output one bit, then flush any pending opposite bits
+        # Output 1 bit, then flush pending opposite bits
         self.output_bits.append(bit)
         while self.pending > 0:
             self.output_bits.append(1 - bit)
@@ -106,7 +104,7 @@ class ArithmeticEncoder:
         self.high = self.low + (range_ * sym_high // total) - 1
         self.low  = self.low + (range_ * sym_low  // total)
 
-        # Renormalize with E1/E2/E3 scaling
+        # E1, E2, E3 scaling
         while True:
             # E1: MSB 0
             if self.high < HALF:
@@ -118,7 +116,7 @@ class ArithmeticEncoder:
                 self._output_bit(1)
                 self.low  = (self.low - HALF) * 2
                 self.high = (self.high - HALF) * 2 + 1
-            # E3: underflow region
+            # E3
             elif self.low >= FIRST_QTR and self.high < THIRD_QTR:
                 self.pending += 1
                 self.low  = (self.low - FIRST_QTR) * 2
@@ -129,9 +127,6 @@ class ArithmeticEncoder:
         model.increment(symbol)
 
     def finish(self):
-        """
-        Flush final bits so decoder can disambiguate last interval.
-        """
         self.pending += 1
         if self.low < FIRST_QTR:
             self._output_bit(0)
@@ -172,7 +167,7 @@ class ArithmeticDecoder:
         self.high = self.low + (range_ * sym_high // total) - 1
         self.low  = self.low + (range_ * sym_low  // total)
 
-        # E1/E2/E3 scaling
+        # E1, E2, E3 scaling
         while True:
             if self.high < HALF:
                 # E1
@@ -235,7 +230,7 @@ def compress_image(pixelmap):
     encoder = ArithmeticEncoder()
     model = FrequencyTable(SYMBOL_COUNT)
 
-    # Work on copy instead of original
+    # copy
     pred_grid = [[(0, 0, 0)] * W for _ in range(H)]
 
     for y in range(H):
@@ -262,7 +257,7 @@ def compress_image(pixelmap):
 
 
 def decompress_image(bitstream, width, height):
-    # Decompress into a pixel grid 
+    # Decompress into pixel grid 
     decoder = ArithmeticDecoder(bitstream)
     model = FrequencyTable(SYMBOL_COUNT)
 
