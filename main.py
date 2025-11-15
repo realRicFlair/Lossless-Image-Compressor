@@ -268,7 +268,6 @@ class MainWindow(QMainWindow):
         # Decompress
         from compress import decompress_image
         grid = decompress_image(bitstream, width, height)
-        print(grid)
 
         # Make a mock BMPFile to show the decoded pixels
         bmp = BMPFile(None)

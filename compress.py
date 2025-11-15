@@ -222,9 +222,6 @@ class ArithmeticDecoder:
         return symbol
 
 
-# ===============================================================
-#   Predictor + Residual Transform (your original logic)
-# ===============================================================
 
 def loco_predictor(x, y, grid):
     """
@@ -252,8 +249,7 @@ def loco_predictor(x, y, grid):
 
 
 # ===============================================================
-#   High-Level API (unchanged externally)
-# ===============================================================
+#   High-Level API 
 
 MAX_RESIDUAL = 510        # residual in [0..510] after shifting by +255
 SYMBOL_COUNT = MAX_RESIDUAL + 1  # 511 symbols
@@ -320,7 +316,7 @@ def decompress_image(bitstream, width, height):
     return grid
 
 
-# Optional quick sanity-test if you run `python compress.py` directly
+# Run compress.py directly for sanity check
 if __name__ == "__main__":
     import random
     W, H = 16, 16
