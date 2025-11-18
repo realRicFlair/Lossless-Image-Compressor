@@ -97,7 +97,7 @@ class FileDrop(QWidget):
                     padding: 40px;
                 }
             """)
-            self.label.setText("Drop your BMP file!")
+            self.label.setText("Drop your BMP or .cmpt365 file!")
         else:
             self.setStyleSheet("""
                 QWidget {
@@ -111,13 +111,13 @@ class FileDrop(QWidget):
                     padding: 40px;
                 }
             """)
-            self.label.setText("Drop BMP file here")
+            self.label.setText("Drop BMP or .cmpt365 file here")
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("BMP Viewer")
+        self.setWindowTitle("BMP Viewer and Compressor")
 
         self.mainwidget = QWidget()
         layout = QVBoxLayout()
